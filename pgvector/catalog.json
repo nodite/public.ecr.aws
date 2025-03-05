@@ -1,0 +1,13 @@
+{
+    "description": "Open-source vector similarity search for Postgres.",
+    "architectures": [
+        "amd64",
+        "arm64"
+    ],
+    "operatingSystems": [
+        "Linux"
+    ],
+    "logoImageBlob": "",
+    "aboutText": "https://hub.docker.com/r/pgvector/pgvector",
+    "usageText": "https://github.com/Oscaner/public.ecr.aws"
+}
