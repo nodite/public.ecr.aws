@@ -3,16 +3,16 @@
 set -e
 
 tags=(
-  pg16
+  latest
 )
 
 platforms=(
   linux/amd64
-  linux/arm64
+  linux/arm64/v8
 )
 
-hub_repo=pgvector/pgvector
-ecr_repo=public.ecr.aws/j2p9b0v2/pgvector
+hub_repo=ollama/ollama
+ecr_repo=public.ecr.aws/j2p9b0v2/ollama
 
 for tag in "${tags[@]}"; do
   manifest=()
