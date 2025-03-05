@@ -1,0 +1,40 @@
+name: schedule
+description: Schedule for the GitHub Actions workflow
+
+on:
+  # schedule:
+  #   - cron: '0 0 * * *'
+  workflow_dispatch:
+
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+
+    # strategy:
+    #   matrix:
+    #     repo: [ollama/ollama]
+    #     tag: [latest]
+    #     arch: [linux/amd64, linux/arm64/v8]
+
+    steps:
+      - uses: actions/checkout@vv
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Tag and Push
+        shell: bash
+        run: |
+          repos=$(ls -d */)
+
+          for repo in $repos; do
+            echo "\n*** $repo start ***********************\n"
+
+            $repo/run.sh
+
+            echo "\n*** $repo end *************************\n"
+          done
