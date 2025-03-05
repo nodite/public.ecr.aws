@@ -1,5 +1,5 @@
 {
-    "description": "The easiest way to get up and running with large language models.",
+    "description": "[Docker Official Images] The easiest way to get up and running with large language models.",
     "architectures": [
         "amd64",
         "arm64/v8"
