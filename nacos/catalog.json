@@ -1,0 +1,13 @@
+{
+    "description": "[Docker Official Images] This project contains a Docker image meant to facilitate the deployment of Nacos.",
+    "architectures": [
+        "amd64",
+        "arm64"
+    ],
+    "operatingSystems": [
+        "Linux"
+    ],
+    "logoImageBlob": "",
+    "aboutText": "https://hub.docker.com/r/nacos/nacos-server",
+    "usageText": "https://github.com/Oscaner/public.ecr.aws"
+}
