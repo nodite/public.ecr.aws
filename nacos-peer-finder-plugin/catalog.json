@@ -1,0 +1,12 @@
+{
+    "description": "[Docker Official Images] scale plugin for nacos k8s.",
+    "architectures": [
+        "amd64"
+    ],
+    "operatingSystems": [
+        "Linux"
+    ],
+    "logoImageBlob": "",
+    "aboutText": "https://hub.docker.com/r/nacos/nacos-peer-finder-plugin",
+    "usageText": "https://github.com/Oscaner/public.ecr.aws"
+}
