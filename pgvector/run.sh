@@ -12,7 +12,7 @@ platforms=(
 )
 
 hub_repo=pgvector/pgvector
-ecr_repo=public.ecr.aws/j2p9b0v2/pgvector
+ecr_repo=public.ecr.aws/oscaner/pgvector
 
 for tag in "${tags[@]}"; do
   manifest=()

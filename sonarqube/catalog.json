@@ -1,0 +1,13 @@
+{
+    "description": "[Docker Official Images] Official images for SonarQube, code analysis tool for code quality and security",
+    "architectures": [
+        "amd64",
+        "arm64/v8"
+    ],
+    "operatingSystems": [
+        "Linux"
+    ],
+    "logoImageBlob": "",
+    "aboutText": "https://hub.docker.com/_/sonarqube",
+    "usageText": "https://github.com/Oscaner/public.ecr.aws"
+}

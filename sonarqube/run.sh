@@ -4,6 +4,7 @@ set -e
 
 tags=(
   latest
+  25.1.0.102122-community
 )
 
 platforms=(
@@ -11,8 +12,8 @@ platforms=(
   linux/arm64/v8
 )
 
-hub_repo=ollama/ollama
-ecr_repo=public.ecr.aws/oscaner/ollama
+hub_repo=sonarqube
+ecr_repo=public.ecr.aws/oscaner/sonarqube
 
 for tag in "${tags[@]}"; do
   manifest=()
