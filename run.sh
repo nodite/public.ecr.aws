@@ -68,6 +68,10 @@ for BASE_IMAGE in "${BASE_IMAGES[@]}"; do
   docker manifest create $TARGET_IMAGE --amend $TARGET_IMAGE_FOR_AMD64 --amend $TARGET_IMAGE_FOR_ARM64
   docker manifest push $TARGET_IMAGE
 
+  # 清理本地镜像和 manifest
+  docker rmi $BASE_IMAGE $TARGET_IMAGE_FOR_AMD64 $TARGET_IMAGE_FOR_ARM64 || true
+  docker manifest rm $TARGET_IMAGE || true
+
   echo "====================================="
   echo "====================================="
 done
@@ -94,6 +98,10 @@ for BASE_IMAGE in "${AMD64_IMAGES[@]}"; do
   docker manifest create $TARGET_IMAGE --amend $TARGET_IMAGE_FOR_AMD64
   docker manifest push $TARGET_IMAGE
 
+  # 清理本地镜像和 manifest
+  docker rmi $BASE_IMAGE $TARGET_IMAGE_FOR_AMD64 || true
+  docker manifest rm $TARGET_IMAGE || true
+
   echo "====================================="
   echo "====================================="
 done
@@ -119,6 +127,10 @@ for BASE_IMAGE in "${ARM64_IMAGES[@]}"; do
 
   docker manifest create $TARGET_IMAGE --amend $TARGET_IMAGE_FOR_ARM64
   docker manifest push $TARGET_IMAGE
+
+  # 清理本地镜像和 manifest
+  docker rmi $BASE_IMAGE $TARGET_IMAGE_FOR_ARM64 || true
+  docker manifest rm $TARGET_IMAGE || true
 
   echo "====================================="
   echo "====================================="
