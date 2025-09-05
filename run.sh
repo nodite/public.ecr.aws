@@ -71,6 +71,7 @@ for BASE_IMAGE in "${BASE_IMAGES[@]}"; do
   # 清理本地镜像和 manifest
   docker rmi $BASE_IMAGE $TARGET_IMAGE_FOR_AMD64 $TARGET_IMAGE_FOR_ARM64 || true
   docker manifest rm $TARGET_IMAGE || true
+  docker rmi $(docker images -f "dangling=true" -q)
 
   echo "====================================="
   echo "====================================="
@@ -101,6 +102,7 @@ for BASE_IMAGE in "${AMD64_IMAGES[@]}"; do
   # 清理本地镜像和 manifest
   docker rmi $BASE_IMAGE $TARGET_IMAGE_FOR_AMD64 || true
   docker manifest rm $TARGET_IMAGE || true
+  docker rmi $(docker images -f "dangling=true" -q)
 
   echo "====================================="
   echo "====================================="
@@ -131,6 +133,7 @@ for BASE_IMAGE in "${ARM64_IMAGES[@]}"; do
   # 清理本地镜像和 manifest
   docker rmi $BASE_IMAGE $TARGET_IMAGE_FOR_ARM64 || true
   docker manifest rm $TARGET_IMAGE || true
+  docker rmi $(docker images -f "dangling=true" -q)
 
   echo "====================================="
   echo "====================================="
