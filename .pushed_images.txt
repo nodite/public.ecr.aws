@@ -1,0 +1,8 @@
+public.ecr.aws/oscaner/ingress-nginx/kube-webhook-certgen:v1.6.1|
+public.ecr.aws/oscaner/ingress-nginx/controller:v1.13.1|
+public.ecr.aws/oscaner/nginx:1.27.3|
+public.ecr.aws/oscaner/minio/minio:RELEASE.2024-12-18T13-15-44Z|
+public.ecr.aws/oscaner/minio/mc:RELEASE.2024-11-21T17-21-54Z|
+public.ecr.aws/oscaner/semitechnologies/weaviate:1.32.4|
+public.ecr.aws/oscaner/semitechnologies/weaviate:1.32.7|
+public.ecr.aws/oscaner/nginx:latest|1758251085

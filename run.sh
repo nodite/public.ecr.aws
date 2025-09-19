@@ -2,15 +2,53 @@
 
 set -e
 
-# 获取脚本目录
+# Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 加载镜像配置
+# Load image configuration
 source "$SCRIPT_DIR/images.conf"
 
 ECR_REGISTRY=public.ecr.aws/oscaner
+STATE_FILE="$SCRIPT_DIR/.pushed_images.txt"
 
-# 动态生成镜像列表
+# Clean expired entries
+clean_expired_entries() {
+  [ ! -f "$STATE_FILE" ] && return
+  
+  local NOW=$(date +%s)
+  local WEEK_AGO=$((NOW - 604800))
+  local TEMP_FILE="$STATE_FILE.tmp"
+  
+  while IFS='|' read -r IMAGE TIMESTAMP; do
+    # Keep non-latest images permanently
+    if [[ "$IMAGE" != *":latest" ]]; then
+      echo "$IMAGE|$TIMESTAMP" >> "$TEMP_FILE"
+    # Keep latest images only if within 1 week
+    elif [ "$TIMESTAMP" -gt "$WEEK_AGO" ]; then
+      echo "$IMAGE|$TIMESTAMP" >> "$TEMP_FILE"
+    fi
+  done < "$STATE_FILE"
+  
+  [ -f "$TEMP_FILE" ] && mv "$TEMP_FILE" "$STATE_FILE"
+}
+
+# Check if image is already pushed
+check_image_pushed() {
+  local IMAGE=$1
+  [ -f "$STATE_FILE" ] && grep -q "^$IMAGE|" "$STATE_FILE"
+}
+
+# Mark image as pushed
+mark_image_pushed() {
+  local IMAGE=$1
+  local TIMESTAMP=$(date +%s)
+  echo "$IMAGE|$TIMESTAMP" >> "$STATE_FILE"
+}
+
+# Clean expired entries at start
+clean_expired_entries
+
+# Generate image list dynamically
 
 # func to create-repository or update-repository
 create_or_update_repository() {
@@ -55,23 +93,71 @@ for BASE_IMAGE in "${BASE_IMAGES[@]}"; do
   TARGET_IMAGE=$ECR_REGISTRY/$BASE_IMAGE_NAME:$BASE_IMAGE_TAG
   echo "TARGET_IMAGE: $TARGET_IMAGE"
 
-  create_or_update_repository "$BASE_IMAGE_NAME" "$BASE_REGISTRY/$BASE_IMAGE_NAME"
+  if ! check_image_pushed "$TARGET_IMAGE"; then
+    create_or_update_repository "$BASE_IMAGE_NAME" "$BASE_REGISTRY/$BASE_IMAGE_NAME"
 
-  docker pull --platform linux/amd64 $BASE_IMAGE
-  docker tag $BASE_IMAGE $TARGET_IMAGE_FOR_AMD64
-  docker push $TARGET_IMAGE_FOR_AMD64
+    docker pull --platform linux/amd64 $BASE_IMAGE
+    docker tag $BASE_IMAGE $TARGET_IMAGE_FOR_AMD64
+    docker push $TARGET_IMAGE_FOR_AMD64
 
-  docker pull --platform linux/arm64 $BASE_IMAGE
-  docker tag $BASE_IMAGE $TARGET_IMAGE_FOR_ARM64
-  docker push $TARGET_IMAGE_FOR_ARM64
+    docker pull --platform linux/arm64 $BASE_IMAGE
+    docker tag $BASE_IMAGE $TARGET_IMAGE_FOR_ARM64
+    docker push $TARGET_IMAGE_FOR_ARM64
 
-  docker manifest create $TARGET_IMAGE --amend $TARGET_IMAGE_FOR_AMD64 --amend $TARGET_IMAGE_FOR_ARM64
-  docker manifest push $TARGET_IMAGE
+    docker manifest create $TARGET_IMAGE --amend $TARGET_IMAGE_FOR_AMD64 --amend $TARGET_IMAGE_FOR_ARM64
+    docker manifest push $TARGET_IMAGE
 
-  # 清理本地镜像和 manifest
-  docker rmi -f $BASE_IMAGE $TARGET_IMAGE_FOR_AMD64 $TARGET_IMAGE_FOR_ARM64 || true
-  docker manifest rm $TARGET_IMAGE || true
-  docker rmi -f $(docker images -f "dangling=true" -q) || true
+    mark_image_pushed "$TARGET_IMAGE"
+
+    docker rmi -f $BASE_IMAGE $TARGET_IMAGE_FOR_AMD64 $TARGET_IMAGE_FOR_ARM64 || true
+    docker manifest rm $TARGET_IMAGE || true
+  else
+    echo "Image $TARGET_IMAGE already pushed, skipping"
+  fi
+
+  echo "====================================="
+  echo "====================================="
+
+  LAST_PART=$(echo $BASE_IMAGE_NAME | rev | cut -d'/' -f1 | rev)
+  if [[ "$BASE_IMAGE_NAME" == *"$LAST_PART/$LAST_PART"* ]]; then
+    DEDUP_IMAGE_NAME=$LAST_PART
+
+    DEDUP_TARGET_IMAGE_FOR_AMD64=$ECR_REGISTRY/$DEDUP_IMAGE_NAME:$BASE_IMAGE_TAG-amd64
+    echo "DEDUP_TARGET_IMAGE_FOR_AMD64: $DEDUP_TARGET_IMAGE_FOR_AMD64"
+
+    DEDUP_TARGET_IMAGE_FOR_ARM64=$ECR_REGISTRY/$DEDUP_IMAGE_NAME:$BASE_IMAGE_TAG-arm64
+    echo "DEDUP_TARGET_IMAGE_FOR_ARM64: $DEDUP_TARGET_IMAGE_FOR_ARM64"
+
+    DEDUP_TARGET_IMAGE=$ECR_REGISTRY/$DEDUP_IMAGE_NAME:$BASE_IMAGE_TAG
+    echo "DEDUP_TARGET_IMAGE: $DEDUP_TARGET_IMAGE"
+
+    if ! check_image_pushed "$DEDUP_TARGET_IMAGE"; then
+      create_or_update_repository "$DEDUP_IMAGE_NAME" "$BASE_REGISTRY/$DEDUP_IMAGE_NAME"
+
+      docker pull --platform linux/amd64 $BASE_IMAGE
+      docker tag $BASE_IMAGE $DEDUP_TARGET_IMAGE_FOR_AMD64
+      docker push $DEDUP_TARGET_IMAGE_FOR_AMD64
+
+      docker pull --platform linux/arm64 $BASE_IMAGE
+      docker tag $BASE_IMAGE $DEDUP_TARGET_IMAGE_FOR_ARM64
+      docker push $DEDUP_TARGET_IMAGE_FOR_ARM64
+
+      docker manifest create $DEDUP_TARGET_IMAGE --amend $DEDUP_TARGET_IMAGE_FOR_AMD64 --amend $DEDUP_TARGET_IMAGE_FOR_ARM64
+      docker manifest push $DEDUP_TARGET_IMAGE
+
+      mark_image_pushed "$DEDUP_TARGET_IMAGE"
+
+      docker rmi -f $DEDUP_TARGET_IMAGE_FOR_AMD64 $DEDUP_TARGET_IMAGE_FOR_ARM64 || true
+      docker manifest rm $DEDUP_TARGET_IMAGE || true
+    else
+      echo "Image $DEDUP_TARGET_IMAGE already pushed, skipping"
+    fi
+  fi
+
+  DANGLING_IMAGES=$(docker images -f "dangling=true" -q)
+  if [ -n "$DANGLING_IMAGES" ]; then
+    docker rmi -f $DANGLING_IMAGES || true
+  fi
 
   echo "====================================="
   echo "====================================="
@@ -90,19 +176,60 @@ for BASE_IMAGE in "${AMD64_IMAGES[@]}"; do
   TARGET_IMAGE=$ECR_REGISTRY/$BASE_IMAGE_NAME:$BASE_IMAGE_TAG
   echo "TARGET_IMAGE: $TARGET_IMAGE"
 
-  create_or_update_repository "$BASE_IMAGE_NAME" "$BASE_REGISTRY/$BASE_IMAGE_NAME"
+  if ! check_image_pushed "$TARGET_IMAGE"; then
+    create_or_update_repository "$BASE_IMAGE_NAME" "$BASE_REGISTRY/$BASE_IMAGE_NAME"
 
-  docker pull --platform linux/amd64 $BASE_IMAGE
-  docker tag $BASE_IMAGE $TARGET_IMAGE_FOR_AMD64
-  docker push $TARGET_IMAGE_FOR_AMD64
+    docker pull --platform linux/amd64 $BASE_IMAGE
+    docker tag $BASE_IMAGE $TARGET_IMAGE_FOR_AMD64
+    docker push $TARGET_IMAGE_FOR_AMD64
 
-  docker manifest create $TARGET_IMAGE --amend $TARGET_IMAGE_FOR_AMD64
-  docker manifest push $TARGET_IMAGE
+    docker manifest create $TARGET_IMAGE --amend $TARGET_IMAGE_FOR_AMD64
+    docker manifest push $TARGET_IMAGE
 
-  # 清理本地镜像和 manifest
-  docker rmi -f $BASE_IMAGE $TARGET_IMAGE_FOR_AMD64 || true
-  docker manifest rm $TARGET_IMAGE || true
-  docker rmi -f $(docker images -f "dangling=true" -q) || true
+    mark_image_pushed "$TARGET_IMAGE"
+
+    docker rmi -f $BASE_IMAGE $TARGET_IMAGE_FOR_AMD64 || true
+    docker manifest rm $TARGET_IMAGE || true
+  else
+    echo "Image $TARGET_IMAGE already pushed, skipping"
+  fi
+
+  echo "====================================="
+  echo "====================================="
+
+  LAST_PART=$(echo $BASE_IMAGE_NAME | rev | cut -d'/' -f1 | rev)
+  if [[ "$BASE_IMAGE_NAME" == *"$LAST_PART/$LAST_PART"* ]]; then
+    DEDUP_IMAGE_NAME=$LAST_PART
+
+    DEDUP_TARGET_IMAGE_FOR_AMD64=$ECR_REGISTRY/$DEDUP_IMAGE_NAME:$BASE_IMAGE_TAG-amd64
+    echo "DEDUP_TARGET_IMAGE_FOR_AMD64: $DEDUP_TARGET_IMAGE_FOR_AMD64"
+
+    DEDUP_TARGET_IMAGE=$ECR_REGISTRY/$DEDUP_IMAGE_NAME:$BASE_IMAGE_TAG
+    echo "DEDUP_TARGET_IMAGE: $DEDUP_TARGET_IMAGE"
+
+    if ! check_image_pushed "$DEDUP_TARGET_IMAGE"; then
+      create_or_update_repository "$DEDUP_IMAGE_NAME" "$BASE_REGISTRY/$DEDUP_IMAGE_NAME"
+
+      docker pull --platform linux/amd64 $BASE_IMAGE
+      docker tag $BASE_IMAGE $DEDUP_TARGET_IMAGE_FOR_AMD64
+      docker push $DEDUP_TARGET_IMAGE_FOR_AMD64
+
+      docker manifest create $DEDUP_TARGET_IMAGE --amend $DEDUP_TARGET_IMAGE_FOR_AMD64
+      docker manifest push $DEDUP_TARGET_IMAGE
+
+      mark_image_pushed "$DEDUP_TARGET_IMAGE"
+
+      docker rmi -f $DEDUP_TARGET_IMAGE_FOR_AMD64 || true
+      docker manifest rm $DEDUP_TARGET_IMAGE || true
+    else
+      echo "Image $DEDUP_TARGET_IMAGE already pushed, skipping"
+    fi
+  fi
+
+  DANGLING_IMAGES=$(docker images -f "dangling=true" -q)
+  if [ -n "$DANGLING_IMAGES" ]; then
+    docker rmi -f $DANGLING_IMAGES || true
+  fi
 
   echo "====================================="
   echo "====================================="
@@ -121,19 +248,60 @@ for BASE_IMAGE in "${ARM64_IMAGES[@]}"; do
   TARGET_IMAGE=$ECR_REGISTRY/$BASE_IMAGE_NAME:$BASE_IMAGE_TAG
   echo "TARGET_IMAGE: $TARGET_IMAGE"
 
-  create_or_update_repository "$BASE_IMAGE_NAME" "$BASE_REGISTRY/$BASE_IMAGE_NAME"
+  if ! check_image_pushed "$TARGET_IMAGE"; then
+    create_or_update_repository "$BASE_IMAGE_NAME" "$BASE_REGISTRY/$BASE_IMAGE_NAME"
 
-  docker pull --platform linux/arm64 $BASE_IMAGE
-  docker tag $BASE_IMAGE $TARGET_IMAGE_FOR_ARM64
-  docker push $TARGET_IMAGE_FOR_ARM64
+    docker pull --platform linux/arm64 $BASE_IMAGE
+    docker tag $BASE_IMAGE $TARGET_IMAGE_FOR_ARM64
+    docker push $TARGET_IMAGE_FOR_ARM64
 
-  docker manifest create $TARGET_IMAGE --amend $TARGET_IMAGE_FOR_ARM64
-  docker manifest push $TARGET_IMAGE
+    docker manifest create $TARGET_IMAGE --amend $TARGET_IMAGE_FOR_ARM64
+    docker manifest push $TARGET_IMAGE
 
-  # 清理本地镜像和 manifest
-  docker rmi -f $BASE_IMAGE $TARGET_IMAGE_FOR_ARM64 || true
-  docker manifest rm $TARGET_IMAGE || true
-  docker rmi -f $(docker images -f "dangling=true" -q) || true
+    mark_image_pushed "$TARGET_IMAGE"
+
+    docker rmi -f $BASE_IMAGE $TARGET_IMAGE_FOR_ARM64 || true
+    docker manifest rm $TARGET_IMAGE || true
+  else
+    echo "Image $TARGET_IMAGE already pushed, skipping"
+  fi
+
+  echo "====================================="
+  echo "====================================="
+
+  LAST_PART=$(echo $BASE_IMAGE_NAME | rev | cut -d'/' -f1 | rev)
+  if [[ "$BASE_IMAGE_NAME" == *"$LAST_PART/$LAST_PART"* ]]; then
+    DEDUP_IMAGE_NAME=$LAST_PART
+
+    DEDUP_TARGET_IMAGE_FOR_ARM64=$ECR_REGISTRY/$DEDUP_IMAGE_NAME:$BASE_IMAGE_TAG-arm64
+    echo "DEDUP_TARGET_IMAGE_FOR_ARM64: $DEDUP_TARGET_IMAGE_FOR_ARM64"
+
+    DEDUP_TARGET_IMAGE=$ECR_REGISTRY/$DEDUP_IMAGE_NAME:$BASE_IMAGE_TAG
+    echo "DEDUP_TARGET_IMAGE: $DEDUP_TARGET_IMAGE"
+
+    if ! check_image_pushed "$DEDUP_TARGET_IMAGE"; then
+      create_or_update_repository "$DEDUP_IMAGE_NAME" "$BASE_REGISTRY/$DEDUP_IMAGE_NAME"
+
+      docker pull --platform linux/arm64 $BASE_IMAGE
+      docker tag $BASE_IMAGE $DEDUP_TARGET_IMAGE_FOR_ARM64
+      docker push $DEDUP_TARGET_IMAGE_FOR_ARM64
+
+      docker manifest create $DEDUP_TARGET_IMAGE --amend $DEDUP_TARGET_IMAGE_FOR_ARM64
+      docker manifest push $DEDUP_TARGET_IMAGE
+
+      mark_image_pushed "$DEDUP_TARGET_IMAGE"
+
+      docker rmi -f $DEDUP_TARGET_IMAGE_FOR_ARM64 || true
+      docker manifest rm $DEDUP_TARGET_IMAGE || true
+    else
+      echo "Image $DEDUP_TARGET_IMAGE already pushed, skipping"
+    fi
+  fi
+
+  DANGLING_IMAGES=$(docker images -f "dangling=true" -q)
+  if [ -n "$DANGLING_IMAGES" ]; then
+    docker rmi -f $DANGLING_IMAGES || true
+  fi
 
   echo "====================================="
   echo "====================================="
