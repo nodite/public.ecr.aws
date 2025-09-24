@@ -14,21 +14,17 @@ STATE_FILE="$SCRIPT_DIR/.pushed_images.txt"
 # Clean expired entries
 clean_expired_entries() {
   [ ! -f "$STATE_FILE" ] && return
-  
+
   local NOW=$(date +%s)
   local WEEK_AGO=$((NOW - 604800))
   local TEMP_FILE="$STATE_FILE.tmp"
-  
+
   while IFS='|' read -r IMAGE TIMESTAMP; do
-    # Keep non-latest images permanently
-    if [[ "$IMAGE" != *":latest" ]]; then
-      echo "$IMAGE|$TIMESTAMP" >> "$TEMP_FILE"
-    # Keep latest images only if within 1 week
-    elif [ "$TIMESTAMP" -gt "$WEEK_AGO" ]; then
+    if [ "$TIMESTAMP" -gt "$WEEK_AGO" ]; then
       echo "$IMAGE|$TIMESTAMP" >> "$TEMP_FILE"
     fi
   done < "$STATE_FILE"
-  
+
   [ -f "$TEMP_FILE" ] && mv "$TEMP_FILE" "$STATE_FILE"
 }
 
