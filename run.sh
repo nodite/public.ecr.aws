@@ -14,18 +14,21 @@ STATE_FILE="$SCRIPT_DIR/.pushed_images.txt"
 # Clean expired entries
 clean_expired_entries() {
   [ ! -f "$STATE_FILE" ] && return
+  [ ! -s "$STATE_FILE" ] && return
 
   local NOW=$(date +%s)
   local WEEK_AGO=$((NOW - 604800))
   local TEMP_FILE="$STATE_FILE.tmp"
 
-  while IFS='|' read -r IMAGE TIMESTAMP; do
-    if [ "$TIMESTAMP" -gt "$WEEK_AGO" ]; then
-      echo "$IMAGE|$TIMESTAMP" >> "$TEMP_FILE"
-    fi
-  done < "$STATE_FILE"
+  # Read file content into variable to avoid stdin redirection
+  local CONTENT=$(cat "$STATE_FILE" 2>/dev/null || true)
+  
+  # Process each line
+  echo "$CONTENT" | while IFS='|' read -r IMAGE TIMESTAMP; do
+    [ -n "$TIMESTAMP" ] && [ "$TIMESTAMP" -gt "$WEEK_AGO" ] && echo "$IMAGE|$TIMESTAMP"
+  done > "$TEMP_FILE"
 
-  [ -f "$TEMP_FILE" ] && mv "$TEMP_FILE" "$STATE_FILE"
+  [ -s "$TEMP_FILE" ] && mv "$TEMP_FILE" "$STATE_FILE" || rm -f "$TEMP_FILE"
 }
 
 # Check if image is already pushed
