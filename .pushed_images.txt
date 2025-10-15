@@ -104,3 +104,4 @@ public.ecr.aws/oscaner/langgenius/enterprise_plugin-crd:0.12.3|1760327400
 public.ecr.aws/oscaner/langgenius/enterprise_plugin-connector:0.12.3|1760327557
 public.ecr.aws/oscaner/langgenius/enterprise_gateway:0.12.3|1760327710
 public.ecr.aws/oscaner/langgenius/dify-plugin-manager:0.12.3|1760327859
+public.ecr.aws/oscaner/fabiocicerchia/nginx-lua:1-alpine|1760518676
