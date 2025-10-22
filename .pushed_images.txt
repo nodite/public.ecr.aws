@@ -114,3 +114,4 @@ public.ecr.aws/oscaner/pgvector/pgvector:pg17|1761104449
 public.ecr.aws/oscaner/pgvector:pg17|1761104575
 public.ecr.aws/oscaner/pgvector/pgvector:pg18|1761104744
 public.ecr.aws/oscaner/pgvector:pg18|1761104933
+public.ecr.aws/oscaner/ingress-nginx/kube-webhook-certgen:v1.6.3|1761109996
