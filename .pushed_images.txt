@@ -106,3 +106,11 @@ public.ecr.aws/oscaner/elasticsearch:8.11.3|1761025521
 public.ecr.aws/oscaner/nacos/nacos-peer-finder-plugin:1.1|1761025549
 public.ecr.aws/oscaner/infiniflow/ragflow:v0.20.4|1761025991
 public.ecr.aws/oscaner/bitnamilegacy/os-shell:12|1761028496
+public.ecr.aws/oscaner/semitechnologies/weaviate:1.33.1|1761103445
+public.ecr.aws/oscaner/langgenius/dify-api:1.8.1|1761103972
+public.ecr.aws/oscaner/langgenius/dify-web:1.8.1|1761104092
+public.ecr.aws/oscaner/langgenius/dify-plugin-daemon:0.3.0-local|1761104304
+public.ecr.aws/oscaner/pgvector/pgvector:pg17|1761104449
+public.ecr.aws/oscaner/pgvector:pg17|1761104575
+public.ecr.aws/oscaner/pgvector/pgvector:pg18|1761104744
+public.ecr.aws/oscaner/pgvector:pg18|1761104933
