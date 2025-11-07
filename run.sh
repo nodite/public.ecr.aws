@@ -20,13 +20,15 @@ clean_expired_entries() {
   local WEEK_AGO=$((NOW - 604800))
   local TEMP_FILE="$STATE_FILE.tmp"
 
+  touch $TEMP_FILE
+
   # Read file content into variable to avoid stdin redirection
   local CONTENT=$(cat "$STATE_FILE" 2>/dev/null || true)
-  
+
   # Process each line
   echo "$CONTENT" | while IFS='|' read -r IMAGE TIMESTAMP; do
-    [ -n "$TIMESTAMP" ] && [ "$TIMESTAMP" -gt "$WEEK_AGO" ] && echo "$IMAGE|$TIMESTAMP"
-  done > "$TEMP_FILE"
+    [ -n "$TIMESTAMP" ] && [ "$TIMESTAMP" -gt "$WEEK_AGO" ] && echo "$IMAGE|$TIMESTAMP" >> "$TEMP_FILE"
+  done
 
   [ -s "$TEMP_FILE" ] && mv "$TEMP_FILE" "$STATE_FILE" || rm -f "$TEMP_FILE"
 }
