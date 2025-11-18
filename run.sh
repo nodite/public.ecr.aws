@@ -30,7 +30,7 @@ clean_expired_entries() {
     [ -n "$TIMESTAMP" ] && [ "$TIMESTAMP" -gt "$WEEK_AGO" ] && echo "$IMAGE|$TIMESTAMP" >> "$TEMP_FILE"
   done
 
-  [ -s "$TEMP_FILE" ] && mv "$TEMP_FILE" "$STATE_FILE" || rm -f "$TEMP_FILE"
+  mv "$TEMP_FILE" "$STATE_FILE" || rm -f "$TEMP_FILE"
 }
 
 # Check if image is already pushed
