@@ -1,2 +1,4 @@
 .DS_Store
 .pushed_images.txt
+.helm_temp
+.pushed_charts.txt
