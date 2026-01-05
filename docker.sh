@@ -6,7 +6,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Load image configuration
-source "$SCRIPT_DIR/images.conf"
+source "$SCRIPT_DIR/docker.conf"
 
 ECR_REGISTRY=public.ecr.aws/oscaner
 STATE_FILE="$SCRIPT_DIR/.pushed_images.txt"
