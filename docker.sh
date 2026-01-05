@@ -17,14 +17,14 @@ clean_expired_entries() {
   [ ! -s "$STATE_FILE" ] && return
 
   local NOW=$(date +%s)
-  local WEEK_AGO=$((NOW - 604800))
+  local MONTH_AGO=$((NOW - 2592000))
   local TEMP_FILE="$STATE_FILE.tmp"
 
   > "$TEMP_FILE"
 
   # Process each line without using pipe to avoid subshell
   while IFS='|' read -r IMAGE TIMESTAMP; do
-    [ -n "$TIMESTAMP" ] && [ "$TIMESTAMP" -gt "$WEEK_AGO" ] && echo "$IMAGE|$TIMESTAMP" >> "$TEMP_FILE"
+    [ -n "$TIMESTAMP" ] && [ "$TIMESTAMP" -gt "$MONTH_AGO" ] && echo "$IMAGE|$TIMESTAMP" >> "$TEMP_FILE"
   done < "$STATE_FILE"
 
   mv "$TEMP_FILE" "$STATE_FILE" || rm -f "$TEMP_FILE"
